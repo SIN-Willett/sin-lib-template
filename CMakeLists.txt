@@ -1,21 +1,57 @@
 cmake_minimum_required(VERSION 3.13.4)
-project(library-name)
+project(library-name VERSION 0.1)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
 add_library(library-name)
 
-target_include_directories(library-name PUBLIC inc)
-target_sources(library-name PUBLIC
-        inc/lib.h src/lib.c
+target_include_directories(library-name 
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/lib.h>
+        $<INSTALL_INTERFACE:include/lib.h>
+        PRIVATE
+        src)
+
+target_sources(library-name
+        PRIVATE
+        inc/lib.h 
+        src/lib.c
         )
 
-#target_link_libraries(library-name PRIVATE pthread)
+add_subdirectory(test)
 
-add_executable(library-test test/test.cpp)
-target_link_libraries(library-test PUBLIC library-name)
-target_include_directories(library-test PRIVATE inc)
+install(TARGETS library-name 
+        EXPORT library-nameTargets
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin
+        INCLUDES DESTINATION include
+        )
 
-enable_testing()
-add_test(libWorks library-test)
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+        library-nameConfigVersion.cmake
+        VERSION ${PACKAGE_VERSION}
+        COMPATIBILITY AnyNewerVersion
+)
+
+install(EXPORT library-nameTargets
+        FILE library-nameTargets.cmake
+        NAMESPACE library-name::
+        DESTINATION lib/cmake/library-name
+        )
+configure_file(library-name-config.cmake.in library-name-config.cmake @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/library-name-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/library-nameConfigVersion.cmake"
+        DESTINATION lib/cmake/library-name
+        )
+
+include(InstallRequiredSystemLibraries)
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_PACKAGE_VERSION_MAJOR "${library-name_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${library-name_VERSION_MINOR}")
+include(CPack)
+
+
